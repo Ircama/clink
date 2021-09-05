@@ -10,7 +10,10 @@
 #include <assert.h>
 
 #include "hooks.h"
-#include "readline/posixstat.h"
+#include <compat/config.h>
+#include <readline/readline.h>
+#include <readline/rlprivate.h>
+#include <readline/posixstat.h>
 
 #define sizeof_array(x) (sizeof(x) / sizeof(x[0]))
 
@@ -19,6 +22,7 @@ static wchar_t  fwrite_buf[2048];
 void            (*rl_fwrite_function)(FILE*, const char*, int)  = NULL;
 void            (*rl_fflush_function)(FILE*)                    = NULL;
 extern int is_exec_ext(const char* ext);
+extern void host_filter_transient_prompt(int crlf);
 
 //------------------------------------------------------------------------------
 static int mb_to_wide(const char* mb, wchar_t* fixed_wide, size_t fixed_size, wchar_t** out_wide, int* out_free)
@@ -255,4 +259,14 @@ int hooked_fstat(int fid, struct hooked_stat* out)
     out->st_nlink = s.st_nlink;
 
     return ret;
+}
+
+//------------------------------------------------------------------------------
+void end_prompt(int crlf)
+{
+    host_filter_transient_prompt(crlf);
+
+    _rl_move_vert(_rl_vis_botlin);
+    if (crlf > 0)
+        rl_crlf();
 }

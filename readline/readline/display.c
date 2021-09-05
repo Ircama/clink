@@ -3552,6 +3552,10 @@ _rl_update_final (void)
   if (line_structures_initialized == 0)
     return;
 
+/* begin_clink_change */
+  end_prompt (-1/*crlf*/);
+/* end_clink_change */
+
   full_lines = 0;
   /* If the cursor is the only thing on an otherwise-blank last line,
      compensate so we don't print an extra CRLF. */
@@ -3582,7 +3586,12 @@ _rl_update_final (void)
       puts_face (&last_line[_rl_screenwidth - 1 + woff],
 		 &last_face[_rl_screenwidth - 1 + woff], 1);
     }
-  _rl_vis_botlin = 0;
+/* begin_clink_change */
+  /* Avoid clearing _rl_vis_botlin so the host knows the height and
+     can erase the prompt and input line, or extract the prompt from
+     the screen buffer. */
+  // _rl_vis_botlin = 0;
+/* end_clink_change */
   if (botline_length > 0 || _rl_last_c_pos > 0)
     rl_crlf ();
   fflush (rl_outstream);
@@ -3676,7 +3685,12 @@ _rl_clean_up_for_exit (void)
     {
       if (_rl_vis_botlin > 0)	/* minor optimization plus bug fix */
 	_rl_move_vert (_rl_vis_botlin);
-      _rl_vis_botlin = 0;
+/* begin_clink_change */
+      /* Avoid clearing _rl_vis_botlin so the host knows the height and
+         can erase the prompt and input line, or extract the prompt from
+         the screen buffer. */
+      // _rl_vis_botlin = 0;
+/* end_clink_change */
       fflush (rl_outstream);
       rl_restart_output (1, 0);
     }
