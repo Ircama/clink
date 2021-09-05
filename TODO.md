@@ -5,19 +5,11 @@ _This todo list describes ChrisAnt996's current intended roadmap for Clink's fut
 # IMPROVEMENTS
 
 ## High Priority
+- Some way to read console input.
+  - The intended scenario is a configuration wizard for a Lua script.
+  - What about <kbd>Ctrl</kbd>+<kbd>Break</kbd>?
 
 ## Medium Priority
-- Transient prompt:  ability to collapse a prompt after it's inactive; [#151](https://github.com/chrisant996/clink/151).
-  - Modes:  "off", "always", or "same-dir"
-  - Usage?
-    - `:transientfilter()` and `:transientrightfilter()`?
-    - `clink.promptfilter()` and `clink.transientpromptfilter()`?
-    - `clink.promptfilter(priority, transient)`?
-  - Triggers:
-    - Input line is accepted.
-    - `rl_buffer:beginoutput()`.
-    - Before any command or `luafunc:` macro prints output.
-      - Intercept output and run transient filter?  Beware of reentrancy...!
 
 ## Low Priority
 

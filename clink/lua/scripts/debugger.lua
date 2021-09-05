@@ -51,6 +51,15 @@
 
 local IsWindows = string.find(string.lower(os.getenv('OS') or ''),'^windows')
 
+-- pause() must step over a different number of lines depending on whether the
+-- debugger is started yet, and whether debugger.lua is embedded (precompiled).
+local step_adjust_start = 0
+local step_adjust_started = 1
+if ((debug.getinfo(IsWindows, 'S') or {}).short_src or '') == '?' then
+  step_adjust_start = -1
+  step_adjust_started = -1
+end
+
 local coro_debugger
 local events = { BREAK = 1, WATCH = 2, STEP = 3, SET = 4 }
 local breakpoints = {}
@@ -1035,7 +1044,7 @@ local function debugger_loop(ev, vars, file, line, idx_watch)
       --{{{  set watch expression
 
       if args and args ~= '' then
-        local func = loadstring("return(" .. args .. ")")
+        local func = load("return(" .. args .. ")")
         local newidx = #watches + 1
         watches[newidx] = {func = func, exp = args}
         io.write("Set watch exp no. " .. newidx..'\n')
@@ -1300,7 +1309,7 @@ local function debugger_loop(ev, vars, file, line, idx_watch)
       --map line starting with "=..." to "return ..."
       if string.sub(line,1,1) == '=' then line = string.gsub(line,'=','return ',1) end
 
-      local ok, func = pcall(loadstring,line)
+      local ok, func = pcall(load,line)
       if func == nil then                             --Michael.Bringmann@lsi.com
         io.write("Compile error: "..line..'\n')
       elseif not ok then
@@ -1484,6 +1493,29 @@ end
 -- Starts/resumes a debug session
 --
 
+--- -name:  pause
+--- -arg:   [message:string]
+--- -arg:   [lines:integer]
+--- -arg:   [force:boolean]
+--- Breaks into the Lua debugger, if the <a href="#lua_debug">lua.debug</a>
+--- setting is enabled.
+---
+--- If <code>pause()</code> is used by itself, the debugger breaks on the line
+--- after the pause call.
+---
+--- The <span class="arg">message</span> argument can be a message the debugger
+--- will display, for example to differentiate between multiple pause calls.
+---
+--- The <span class="arg">lines</span> argument indicates how many lines to step
+--- further before breaking into the debugger.  The default is nil, which breaks
+--- on the line immediately following the pause call.  Passing an integer value
+--- will step some number of lines before breaking (this will produce confusing
+--- results and is discouraged).
+---
+--- When the <span class="arg">force</span> argument is <code>true</code> then
+--- it will break into the debugger even if the <code>poff</code> debugger
+--- command has been used to turn off the pause command.
+
 function pause(x,l,f)
   if not f and pause_off then return end       --being told to ignore pauses
   pausemsg = x or 'pause'
@@ -1499,7 +1531,7 @@ function pause(x,l,f)
   show_stack = true                          --make debugger_loop show stack trace
   if started then
     --we'll stop now 'cos the existing debug hook will grab us
-    step_lines = lines + 1                   --plus 1 to break when we get out of pause(), rather than inside pause()
+    step_lines = lines + step_adjust_started
     step_into  = true
     debug.sethook(debug_hook, "crl")         --reset it in case some external agent fiddled with it
   else
@@ -1507,7 +1539,7 @@ function pause(x,l,f)
     trace_level[current_thread] = 0
     step_level [current_thread] = 0
     stack_level[current_thread] = 1
-    step_lines = lines
+    step_lines = lines + step_adjust_start
     step_into  = true
     started    = true
     debug.sethook(debug_hook, "crl")         --NB: this will cause an immediate entry to the debugger_loop

@@ -90,11 +90,11 @@ The following table describes the available Clink settings:
 Name                         | Default | Description
 :--:                         | :-:     | -----------
 `clink.autostart`            |         | This command is automatically run when the first CMD prompt is shown after Clink is injected.  If this is blank (the default), then Clink instead looks for clink_start.cmd in the binaries directory and profile directory and runs them.  Set it to "nul" to not run any autostart command.
-`clink.colorize_input`       | True    | Enables context sensitive coloring for the input text (see <a href="#classifywords">Coloring The Input Text</a>).
-`clink.logo`                 | `full`  | Controls what startup logo to show when Clink is injected.  `full` = show full copyright logo (the default), `short` = show abbreviated version info, `none` = omit the logo.
+`clink.colorize_input`       | True    | Enables context sensitive coloring for the input text (see [Coloring The Input Text](#classifywords)).
+`clink.logo`                 | `full`  | Controls what startup logo to show when Clink is injected.  `full` = show full copyright logo, `short` = show abbreviated version info, `none` = omit the logo.
 `clink.paste_crlf`           | `crlf`  | What to do with CR and LF characters on paste. Setting this to `delete` deletes them, `space` replaces them with spaces, `ampersand` replaces them with ampersands, and `crlf` pastes them as-is (executing commands that end with a newline).
-`clink.path`                 |         | A list of paths to load Lua scripts. Multiple paths can be delimited semicolons.
-`clink.promptfilter`         | True    | Enable prompt filtering by Lua scripts.
+`clink.path`                 |         | A list of paths from which to load Lua scripts. Multiple paths can be delimited semicolons.
+`clink.promptfilter`         | True    | Enable [prompt filtering](#customising-the-prompt) by Lua scripts.
 `cmd.auto_answer`            | `off`   | Automatically answers cmd.exe's "Terminate batch job (Y/N)?" prompts. `off` = disabled, `answer_yes` = answer Y, `answer_no` = answer N.
 `cmd.ctrld_exits`            | True    | <kbd>Ctrl</kbd>+<kbd>D</kbd> exits the process when it is pressed on an empty line.
 `cmd.get_errorlevel`         | True    | When this is enabled, Clink runs a hidden `echo %errorlevel%` command before each interactive input prompt to retrieve the last exit code for use by Lua scripts.  If you experience problems, try turning this off.  This is on by default.
@@ -102,7 +102,7 @@ Name                         | Default | Description
 `color.argmatcher`           |         | The color for the command name in the input line when `clink.colorize_input` is enabled, if the command name has an argmatcher available.
 <a name="color_cmd"></a>`color.cmd` | `bold` | Used when Clink displays shell (CMD.EXE) command completions, and in the input line when `clink.colorize_input` is enabled.
 <a name="color_doskey"></a>`color.doskey` | `bright cyan` | Used when Clink displays doskey alias completions, and in the input line when `clink.colorize_input` is enabled.
-<a name="color_filtered"></a>`color.filtered` | `bold` | The default color for filtered completions (see <a href="#filteringthematchdisplay">Filtering the Match Display</a>).
+<a name="color_filtered"></a>`color.filtered` | `bold` | The default color for filtered completions (see [Filtering the Match Display](#filteringthematchdisplay)).
 `color.flag`                 | `default` | The color for flags in the input line when `clink.colorize_input` is enabled.
 <a name="color_hidden"></a>`color.hidden` | | Used when Clink displays file completions with the "hidden" attribute.
 `color.horizscroll`          |         | Used when Clink displays the `<` or `>` horizontal scroll indicators when Readline's `horizontal-scroll-mode` variable is set.
@@ -134,9 +134,9 @@ Name                         | Default | Description
 `history.sticky_search`      | False   | When enabled, reusing a history line does not add the reused line to the end of the history, and it leaves the history search position on the reused line so next/prev history can continue from there (e.g. replaying commands via <kbd>Up</kbd> several times then <kbd>Enter</kbd>, <kbd>Down</kbd>, <kbd>Enter</kbd>, etc).
 `lua.break_on_error`         | False   | Breaks into Lua debugger on Lua errors.
 `lua.break_on_traceback`     | False   | Breaks into Lua debugger on `traceback()`.
-`lua.debug`                  | False   | Loads a simple embedded command line debugger when enabled. Breakpoints can be added by calling `pause()`.
+<a name="lua_debug"></a>`lua.debug` | False | Loads a simple embedded command line debugger when enabled. Breakpoints can be added by calling [pause()](#pause).
 `lua.path`                   |         | Value to append to `package.path`. Used to search for Lua scripts specified in `require()` statements.
-<a name="lua_reload_scripts"></a>`lua.reload_scripts` | False | When false, Lua scripts are loaded once and are only reloaded if forced (see <a href="#lua-scripts-location">The Location of Lua Scripts</a> for details).  When true, Lua scripts are loaded each time the edit prompt is activated.
+<a name="lua_reload_scripts"></a>`lua.reload_scripts` | False | When false, Lua scripts are loaded once and are only reloaded if forced (see [The Location of Lua Scripts](#lua-scripts-location) for details).  When true, Lua scripts are loaded each time the edit prompt is activated.
 `lua.strict`                 | True    | When enabled, argument errors cause Lua scripts to fail.  This may expose bugs in some older scripts, causing them to fail where they used to succeed. In that case you can try turning this off, but please alert the script owner about the issue so they can fix the script.
 `lua.traceback_on_error`     | False   | Prints stack trace on Lua errors.
 `match.expand_envvars`       | False   | Expands environment variables in a word before performing completion.
@@ -145,7 +145,8 @@ Name                         | Default | Description
 `match.sort_dirs`            | `with`  | How to sort matching directory names. `before` = before files, `with` = with files, `after` = after files.
 `match.translate_slashes`    | `system` | File and directory completions can be translated to use consistent slashes.  The default is `system` to use the appropriate path separator for the OS host (backslashes on Windows).  Use `slash` to use forward slashes, or `backslash` to use backslashes.  Use `off` to turn off translating slashes from custom match generators.
 `match.wild`                 | True    | Matches `?` and `*` wildcards when using any of the completion commands.  Turn this off to behave how bash does, and not match wildcards (but `glob-complete-word` always matches wildcards).
-`prompt.async`               | True    | Enables asynchronous prompt refresh.  Turn this off if prompt filter refreshes are annoying or cause problems.
+`prompt.async`               | True    | Enables [asynchronous prompt refresh](#asyncpromptfiltering).  Turn this off if prompt filter refreshes are annoying or cause problems.
+<a name="prompt-transient"></a>`prompt.transient` | `off` | Controls when past prompts are collapsed ([transient prompts](#transientprompts)).  `off` = never collapse past prompts, `always` = always collapse past prompts, `same_dir` = only collapse past prompts when the current working directory hasn't changed since the last prompt.
 `readline.hide_stderr`       | False   | Suppresses stderr from the Readline library.  Enable this if Readline error messages are getting in the way.
 `terminal.adjust_cursor_style`| True   | When enabled, Clink adjusts the cursor shape and visibility to show Insert Mode, produce the visible bell effect, avoid disorienting cursor flicker, and to support ANSI escape codes that adjust the cursor shape and visibility. But it interferes with the Windows 10 Cursor Shape console setting. You can make the Cursor Shape setting work by disabling this Clink setting (and the features this provides).
 `terminal.differentiate_keys`| False   | When enabled, pressing <kbd>Ctrl</kbd> + <kbd>H</kbd> or <kbd>I</kbd> or <kbd>M</kbd> or <kbd>[</kbd> generate special key sequences to enable binding them separately from <kbd>Backspace</kbd> or <kbd>Tab</kbd> or <kbd>Enter</kbd> or <kbd>Esc</kbd>.
@@ -474,7 +475,7 @@ Typing|Typing does an incremental search.
 
 # Extending Clink With Lua
 
-Clink can be extended with <a href="https://www.lua.org/docs.html">Lua</a> scripts to customize startup actions, create completion matches, customize the prompt, and more.  The following sections describe these in more detail and show some examples.
+Clink can be extended with <a href="https://www.lua.org/docs.html">Lua</a> scripts to customise startup actions, create completion matches, customise the prompt, and more.  The following sections describe these in more detail and show some examples.
 
 <a name="lua-scripts-location"></a>
 
@@ -494,10 +495,10 @@ Run `clink info` to see the script paths for the current session.
 
 - Loading a Lua script executes it; so when Clink loads Lua scripts from the locations above, it executes the scripts.
 - Code not inside a function is executed immediately when the script is loaded.
-- Usually scripts will register functions to customize various behaviors:
+- Usually scripts will register functions to customise various behaviors:
   - Generate completion matches.
   - Apply color to input text.
-  - Customize the prompt.
+  - Customise the prompt.
   - Perform actions before or after the user gets to edit each input line.
   - Provide new custom commands that can be bound to keys via the <a href="#luakeybindings">luafunc: key macro syntax</a>.
 - Often scripts will also define some functions and variables for use by itself and/or other scripts.
@@ -940,6 +941,34 @@ The following example illustrates running `git status` in the background.  It al
 
 ```lua
 #INCLUDE [examples\ex_async_prompt.lua]
+```
+
+<a name="transientprompts"></a>
+
+#### Transient Prompt
+
+Clink can replace a past prompt with a differently formatted "transient" prompt.  For example, if your normal prompt contains many bits of information that don't need to be seen later, then it may be desirable to replace past prompts with a simpler prompt.  Or it may be useful to update the timestamp in a prompt to indicate when the prompt was completed, rather than when it was first shown.
+
+The `%CLINK_TRANSIENT_PROMPT%` environment variable provides the initial prompt string for the transient prompt.
+
+Turn on the transient prompt with `clink set prompt.transient always`.  Or use `same_dir` instead of `always` to only use a transient prompt when the current directory is the same as the previous prompt.
+
+The transient prompt can be customised by a prompt filter:
+1. Create a new prompt filter by calling `clink.promptfilter()` along with a priority id which dictates the order in which filters are called. Lower priority ids are called first.
+2. Define a `:transientfilter()` function on the returned prompt filter.
+
+The transient filter function takes a string argument that contains the filtered prompt so far.  If the filter function returns nil, it has no effect.  If the filter function returns a string, that string is used as the new filtered prompt (and may be further modified by other prompt filters with higher priority ids).  If the filter function returns a string and a boolean, then if the boolean is false the prompt filtering is done and no further filter functions are called.
+
+A transient right side prompt is also possible (similar to the usual [right side prompt](#rightprompt)).  The `%CLINK_TRANSIENT_RPROMPT%` environment variable (note the `R` in `_RPROMPT`) provides the initial prompt string for the transient right side prompt, which can be customised by a `:transientrightfilter()` function on a prompt filter.
+
+A prompt filter must have a `:filter()` function defined on it, and may in addition have any combination of `:rightfilter()`, `:transientfilter()`, and `:transientrightfilter()` functions defined on it.
+
+The next example shows how to make a prompt that shows:
+1. The current directory and ` > ` on the left, and the date and time on the right.
+2. Just `> ` on the left.
+
+```lua
+#INCLUDE [examples\ex_transient_prompt.lua]
 ```
 
 # Miscellaneous
