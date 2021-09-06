@@ -1,5 +1,18 @@
+-- Git plugin, providing colored Git status summary information displayed in
+-- the first part of the prompt.  Shown data include branch (colored in green if
+-- clean, yellow if status is not clean, red if conflict is present, magenta if
+-- clean unpublished branch, or default color if status isn't known yet) and
+-- tracking (nothing shown if the local branch is at the same commit level as
+-- the remote branch, otherwise the number of commits behind (↓) or ahead (↑)
+-- of the remote are reported).
+-- This plugin is enabled by default and can be disabled with the command
+-- "clink set prompt.git.active false".
+-- "clink set prompt.git.fetch false" disables "git fetch" before "git status".
+
 local prev_dir      -- Most recent git repo visited.
 local prev_info     -- Most recent info retrieved by the coroutine.
+settings.add("prompt.git.active", true, "Boolean setting")
+settings.add("prompt.git.fetch", true, "Boolean setting")
 
 local function get_git_dir(dir)
     -- Check if the current directory is in a git repo.
@@ -26,17 +39,41 @@ end
 local function get_git_status()
     -- The io.popenyield API is like io.popen, but it yields until the output is
     -- ready to be read.
-    local file = io.popenyield("git --no-optional-locks status --porcelain 2>nul")
-    local status = false
+    if settings.get("prompt.git.fetch") then os.execute("git fetch") end
+    local file = io.popenyield(
+        "git -c color.status=always --no-optional-locks status -bs 2>nul")
+    local branch = nil
+    local unpublished_branch = nil
+    local upstream = nil
+    local tracking = nil
+    local line_number = 0
+    local editing = false
     for line in file:lines() do
-        -- If there's any output, the status is not clean.  Since this example
-        -- doesn't analyze the details, it can stop once it knows there's any
-        -- output at all.
-        status = true
-        break
+        line_number = line_number + 1
+        if line_number == 1 then  -- parsing the first line
+            _, _, branch, upstream, tracking = string.find(
+                line, "^## (.+)%.%.%.(%S+) ?%[?([^%]]*)")
+            if tracking == "" then tracking = nil end
+            if tracking ~= nil then  -- nil means even with remote
+                tracking = tracking:gsub(",", ""):
+                    gsub("ahead ", "↑"):gsub("behind ", "↓")
+            end
+            if branch == nil then
+                _, _, unpublished_branch = string.find(line, "^## (.+)$")
+                if unpublished_branch ~= nil then
+                    branch = unpublished_branch
+                end
+            end
+        end
+        if branch == nil then break end  -- this means no git repository
+        -- any subsequent line means unclean status
+        if line_number > 1 and line and line ~= "" then
+            editing = true
+            break
+        end
     end
     file:close()
-    return status
+    return branch, upstream, tracking, editing
 end
 
 local function get_git_conflict()
@@ -57,7 +94,7 @@ local function collect_git_info()
     -- This is run inside the coroutine, which happens while idle while waiting
     -- for keyboard input.
     local info = {}
-    info.status = get_git_status()
+    info.branch, info.upstream, info.tracking, info.status = get_git_status()    
     info.conflict = get_git_conflict()
     -- Until this returns, the call to clink.promptcoroutine() will keep
     -- returning nil.  After this returns, subsequent calls to
@@ -69,6 +106,7 @@ end
 local git_prompt = clink.promptfilter(55)
 function git_prompt:filter(prompt)
     -- Do nothing if not a git repo.
+    if not settings.get("prompt.git.active") then return end
     local dir = get_git_dir(os.getcwd())
     if not dir then
         return
@@ -96,18 +134,27 @@ function git_prompt:filter(prompt)
     -- If no status yet, use the status from the previous prompt.
     if info == nil then
         info = prev_info or {}
+        info.status = nil  -- with prev. prompt, reset the color
     else
         prev_info = info
     end
     -- Choose color for the git branch name:  green if status is clean, yellow
-    -- if status is not clean, red if conflict is present, or default color if
-    -- status isn't known yet.
-    local sgr = "37;1"
+    -- if status is not clean, red if conflict is present, magenta if clean
+    -- unpublished branch, or default color if status isn't known yet.
+    local sgr = "37;1"  -- white
+    -- "\x1b[m = reset color
+    local tracking = info.tracking and "\x1b[m "..info.tracking or ""
     if info.conflict then
-        sgr = "31;1"
+        sgr = "31;1"  -- red
     elseif info.status ~= nil then
-        sgr = info.status and "33;1" or "32;1"
+        sgr = info.status and "33;1" or "32;1"  -- yellow (unclean) or green
+        if info.status == false and info.upstream == nil then
+            sgr = "95;1"  -- magenta = clean unpublished branch
+        end
     end
-    -- Prefix the prompt with "[branch]" using the status color.
-    return "\x1b["..sgr.."m["..branch.."]\x1b[m  "..prompt
+    -- Prefix the prompt with "[branch <tracking info>]" using the status color.
+    return "\x1b["..sgr.."m["..
+            branch..tracking..
+            "\x1b["..sgr.."m]\x1b[m  "..
+            prompt
 end
