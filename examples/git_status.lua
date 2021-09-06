@@ -6,11 +6,13 @@
 -- the remote branch, otherwise the number of commits behind (↓) or ahead (↑)
 -- of the remote are reported).
 -- This plugin is enabled by default and can be disabled with the command
--- "clink set prompt.git false".
+-- "clink set prompt.git.active false".
+-- "clink set prompt.git.fetch false" disables "git fetch" before "git status".
 
 local prev_dir      -- Most recent git repo visited.
 local prev_info     -- Most recent info retrieved by the coroutine.
-settings.add("prompt.git", true, "Boolean setting")
+settings.add("prompt.git.active", true, "Boolean setting")
+settings.add("prompt.git.fetch", true, "Boolean setting")
 
 local function get_git_dir(dir)
     -- Check if the current directory is in a git repo.
@@ -37,6 +39,7 @@ end
 local function get_git_status()
     -- The io.popenyield API is like io.popen, but it yields until the output is
     -- ready to be read.
+    if settings.get("prompt.git.fetch") then os.execute("git fetch") end
     local file = io.popenyield(
         "git -c color.status=always --no-optional-locks status -bs 2>nul")
     local branch = nil
@@ -103,7 +106,7 @@ end
 local git_prompt = clink.promptfilter(55)
 function git_prompt:filter(prompt)
     -- Do nothing if not a git repo.
-    if not settings.get("prompt.git") then return end
+    if not settings.get("prompt.git.active") then return end
     local dir = get_git_dir(os.getcwd())
     if not dir then
         return
